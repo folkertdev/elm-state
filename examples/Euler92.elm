@@ -33,7 +33,7 @@ terminator n =
             updateWithValue : Int -> State (Dict Int Int) Int
             updateWithValue value =
                 modify (Dict.insert n value)
-                    `andThen` \_ -> state value
+                    |> State.map (\_ -> value)
 
             updateIfNeeded : Dict Int Int -> State (Dict Int Int) Int
             updateIfNeeded dict =
@@ -50,10 +50,10 @@ terminator n =
 
 terminators : List Int -> State (Dict Int Int) (List Int)
 terminators =
-    mapState terminator
+    State.traverse terminator
 
 
-solution : Int -> Html msg
+solution : Int -> Int
 solution n =
     let
         {- calculates the value less than n with highest step value -}
@@ -91,9 +91,9 @@ solution n =
     in
         Array.initialize n (\v -> v + 1)
             |> Array.foldr operation 0
-            |> toString
-            |> text
 
 
 main =
-    solution 999999
+    solution 99999
+        |> toString
+        |> text

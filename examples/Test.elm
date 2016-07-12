@@ -8,6 +8,7 @@ import Random exposing (Seed, initialSeed)
 import Debug
 import String
 import Char
+import Date exposing (Day(..))
 
 
 {- This is a testing/playground file. Functions found in this this file
@@ -164,6 +165,44 @@ subscriptions model =
 
 
 -- VIEW
+-- a -> b ->     c
+-- a -> b -> (b, c)
+
+
+updater : (a -> b -> c) -> a -> State b c
+updater f elem =
+    get `andThen` (state << f elem)
+
+
+initialState =
+    [ "foo", "bar", "spam" ]
+
+
+
+-- (::) : a -> list a -> List a
+-- (++) : appendable -> appendable -> appendable
+-- foldlM (String -> a -> State s String) -> String -> List a -> s String
+
+
+result2 =
+    foldlM (\a b -> get `andThen` \v -> state (String.join ", " <| v ++ [ a, b ])) "" [ "a", "orange" ]
+        |> State.run initialState
+
+
+like subject =
+    "I like " ++ subject ++ "s"
+
+
+result =
+    filterM (State.embed << List.member) [ "hamster", "rabbit", "guinea pig" ]
+        |> State.map (List.map (\subject -> "I like " ++ subject ++ "s"))
+        |> State.map (String.join " and ")
+        |> State.run [ "cat", "dog", "hamster" ]
+
+
+predicate : Day -> State { record | holiday : List Day } Bool
+predicate day =
+    get `andThen` \s -> state (day `List.member` (s.holiday ++ [ Sun, Sat ]))
 
 
 view : Model -> Html Msg
@@ -171,4 +210,5 @@ view model =
     div []
         [ h1 [] [ text (toString model.dieFace) ]
         , button [ onClick Roll ] [ text "Roll" ]
+        , text <| toString <| result
         ]

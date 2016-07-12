@@ -5,18 +5,26 @@ import Array exposing (Array)
 import Html exposing (text)
 
 
+type alias Sieve =
+    Array (Maybe Int)
+
+
+type alias Config =
+    { username : String }
+
+
 range : Int -> Int -> Int -> List Int
 range start stop step =
     [0..((stop - start) // step)]
         |> List.map (\v -> v * step + start)
 
 
-cycle : Int -> State (Array Bool) (Maybe Int)
+cycle : Int -> State Sieve (Maybe Int)
 cycle n =
     let
-        mark : Int -> State (Array Bool) ()
+        mark : Int -> State Sieve ()
         mark n =
-            State.modify (Array.set n False)
+            State.modify (Array.set n Nothing)
 
         -- generate multiples of n in the range [n*n..lengthOfArray]
         multiplesToMark length n =
@@ -26,32 +34,46 @@ cycle n =
             State.map Array.length State.get
 
         markMultiples length =
-            -- mapState shares the Array Int beteween invocations of mark.
-            State.mapState mark (multiplesToMark length n)
+            -- traverse shares the Array Int beteween invocations of mark.
+            State.traverse mark (multiplesToMark length n)
 
         setNextIndex _ =
             State.map (toNextIndex n) State.get
     in
-        getArrayLength `andThen` markMultiples `andThen` setNextIndex
+        getArrayLength
+            `andThen` markMultiples
+            `andThen` setNextIndex
 
 
-recurse : Int -> (Int -> State (Array Bool) (Maybe Int)) -> State (Array Bool) (Maybe Int)
+recurse : Int -> (Int -> State Sieve (Maybe Int)) -> State Sieve (Maybe Int)
 recurse initial advance =
     let
-        advanceIfPossible : Maybe Int -> State (Array Bool) (Maybe Int)
+        advanceIfPossible : Maybe Int -> State Sieve (Maybe Int)
         advanceIfPossible mindex =
-            Maybe.map (\index -> recurse index advance) mindex
-                |> Maybe.withDefault (state Nothing)
+            case mindex of
+                Nothing ->
+                    state Nothing
+
+                Just index ->
+                    recurse index advance
     in
         advance initial `andThen` advanceIfPossible
 
 
-toNextIndex : Int -> Array Bool -> Maybe Int
-toNextIndex currentIndex array =
-    Array.indexedMap (,) array
-        |> Array.filter (\( index, value ) -> index > currentIndex && value == True)
-        |> Array.get 0
-        |> Maybe.map fst
+toNextIndex : Int -> Sieve -> Maybe Int
+toNextIndex currentIndex sieve =
+    let
+        predicate e =
+            case e of
+                Just v ->
+                    v > currentIndex
+
+                Nothing ->
+                    False
+    in
+        Array.filter predicate sieve
+            |> Array.get 0
+            |> (\m -> m `Maybe.andThen` identity)
 
 
 primesUpTo : Int -> Array Int
@@ -59,15 +81,22 @@ primesUpTo n =
     -- up to, not including
     let
         initialState =
-            Array.repeat n True
-                |> Array.set 0 False
-                |> Array.set 1 False
+            Array.initialize n Just
+                |> Array.set 0 Nothing
+                |> Array.set 1 Nothing
     in
         recurse 2 cycle
             |> State.finalState initialState
-            |> Array.indexedMap (,)
-            |> Array.filter (\( i, v ) -> v == True)
-            |> Array.map fst
+            |> Array.foldl
+                (\elem accum ->
+                    case elem of
+                        Nothing ->
+                            accum
+
+                        Just v ->
+                            Array.push v accum
+                )
+                Array.empty
 
 
 main =

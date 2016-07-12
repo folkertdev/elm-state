@@ -25,7 +25,7 @@ fibHelper n =
         addNewValue : Int -> State (Dict Int Int) Int
         addNewValue solution =
             State.modify (Dict.insert n solution)
-                `andThen` \_ -> state solution
+                |> State.map (\_ -> solution)
 
         modifyWhenNeeded : Dict Int Int -> State (Dict Int Int) Int
         modifyWhenNeeded cache =
@@ -52,7 +52,7 @@ fibs =
 fibsHelper : List Int -> State (Dict Int Int) (List Int)
 fibsHelper =
     -- State.mapState makes sure to reuse the cache between calls to fibHelper.
-    State.mapState fibHelper
+    State.traverse fibHelper
 
 
 main =
