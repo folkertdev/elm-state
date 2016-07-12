@@ -4,7 +4,7 @@ Threading state through computation
 This library provides ways to compose functions of the type 
 `s -> (a, s)`. 
 
-#<a name="rationale">Rationale</a>
+#<a name="motivation">Motivation</a>
 
 From time to time, you'll see a pattern like this in your code 
 
@@ -88,7 +88,7 @@ cycle n =
 ```
 
 But when subcomputations have a descriptive name, the final composition (in the 'in' clause) 
-will be very straightforward. The subcomputations are also very reusable. 
+will be very straightforward. At the same time, the subcomputations are extremely reusable. 
 
 ```elm
 cycle : Int -> State (Array Bool) (Maybe Int)
@@ -202,10 +202,20 @@ fibsHelper =
     State.mapState fibHelper
 ```
 
-##Random 
+###Tips 
+
+Instead of this 
+    get `andThen` \value -> state (f value)
+
+write 
+    State.map f State.get
+
+<hr/>
+
+##Threading a Random seed
 
 When working with random values, you have to update the seed after every computation.
-Note how this is very similar to the general patter in the [Rationale](#rationale) section.
+Note how this is very similar to the general pattern in the [motivation](#motivation) section.
 
 ```elm
 myRandomValues =
