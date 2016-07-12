@@ -24,7 +24,7 @@ the output of `f` is the input to `g`.
 ```
 
 This library implements this composition and provides a bunch of helper functions for 
-working with state in a pure way. For a more in-depth explanation of how this works, see the [derivation](#derivation).
+working with State. For a more in-depth explanation of how the implementation works, see the [derivation](#derivation).
 
 #Working with values within State 
 
@@ -34,19 +34,23 @@ There are three main functions for working with the wrapped state value:
     final value has to be of type `State`
     ```elm
     State.get `andThen` \value -> 
-        state (value + 1)
+        -- value will be whatever the value of the 
+        -- state was
+        state (value + 42)
     ```
 
 * **State.set**: set the state to a certain value.
     ```elm
-    State.set Nothing `andThen` \_ -> state 0
+    State.put 5
+        |> State.finalState 3
+        -- == 5 
     ```
     Note that `State.set` discards the value currently stored in the state. 
 
 * **State.modify**: apply a function to the state; a combination of get and set
     ```elm
     State.modify (\v -> v + 1)
-        `andThen` \_ -> state "finished"
+        |> State.map (\_ -> "finished")
     ```
     Note that `State.modify` (because it combines get and set) discards
     the value currently stored in the state.
@@ -67,6 +71,7 @@ run initialState (State f) =
 
 The composition operator for functions wrapped in `State` is called `andThen`. It is the primary way 
 to structure computations that involve `State`. When not used with care, this can lead to truly awful code.
+This is what the Haskellers at Facebook call [a code tornado](https://youtu.be/mlTO510zO78?t=34m7s). 
 
 ```elm
 cycle : Int -> State (Array Bool) (Maybe Int)
@@ -87,8 +92,8 @@ cycle n =
                         State.map (toNextIndex n) State.get
 ```
 
-But when subcomputations have a descriptive name, the final composition (in the 'in' clause) 
-will be very straightforward. At the same time, the subcomputations are extremely reusable. 
+This problem can be solved by extracting subcomputations and giving them a descriptive name. Not only is the final composition
+(in the 'in' clause) very readable and understandable, the individual components are also nicely reusable.
 
 ```elm
 cycle : Int -> State (Array Bool) (Maybe Int)
@@ -117,6 +122,26 @@ cycle n =
 When using andThen, try to break up your computation into small, reusable bits and give them a descriptive name. 
 A general elm principle is that the shortest code is often not the best code. Don't take shortcuts with
 andThen in production code.
+
+
+
+###Tips 
+
+* Prevent code tornadoes
+* Name subcomputations/functions appropriately 
+* A bit more verbose is probably better
+* Limit the amount of code that is "in State" to a minimum
+    Try to keep functions pure and use the helper functions in this package
+    to let the work on values "in State". 
+* Instead of this 
+    ```
+    get `andThen` \value -> state (f value)
+    ```
+
+    write 
+    ```elm
+    State.map f State.get
+    ```
 
 #Use cases  
 
@@ -167,7 +192,7 @@ fibHelper n =
         addNewValue : Int -> State (Dict Int Int) Int
         addNewValue solution =
             State.modify (Dict.insert n solution)
-                `andThen` \_ -> state solution
+                |> State.map (\_ -> solution)
 
         modifyWhenNeeded : Dict Int Int -> State (Dict Int Int) Int
         modifyWhenNeeded cache =
@@ -185,7 +210,7 @@ fibHelper n =
 Notice how, with the help of choosing descriptive names, this function reads like a 
 step-by-step description of what happens. This is what makes using `andThen` so nice. 
 
-It is also possible to reuse the cache for multiple invocations of fibHelper, using `State.mapState`.
+It is also possible to reuse the cache for multiple invocations of fibHelper, for example using `State.traverse`.
 
 ```elm 
 fibs : List Int -> List Int
@@ -199,18 +224,9 @@ fibs =
 
 fibsHelper : List Int -> State (Dict Int Int) (List Int)
 fibsHelper =
-    State.mapState fibHelper
+    State.traverse fibHelper
 ```
 
-###Tips 
-
-Instead of this 
-    get `andThen` \value -> state (f value)
-
-write 
-    State.map f State.get
-
-<hr/>
 
 ##Threading a Random seed
 
