@@ -14,7 +14,7 @@ From time to time, you'll see a pattern like this in your code
 (newererValue, newererState) = h newerValue newerState
 ``` 
 
-This pattern is ugly and error-prone (because of typo's, for instance). 
+The above pattern is ugly and error-prone (because of typo's, for instance). 
 It can be abstracted by creating a function that composes `f` and `g`, that is 
 the output of `f` is the input to `g`.
 
@@ -23,36 +23,39 @@ the output of `f` is the input to `g`.
     g : a -> s -> (a, s) 
 ```
 
-This library implements this composition and provides a bunch of helper functions for 
+This library implements the described composition and provides a bunch of helper functions for 
 working with State. For a more in-depth explanation of how the implementation works, see the [derivation](#derivation).
+
+*This library is advanced and relatively abstract. 
+If anything is unclear, please [open an issue](https://github.com/folkertdev/elm-state/issues)*.
 
 #Working with values within State 
 
 There are three main functions for working with the wrapped state value: 
 
-* **State.get**: aquire the state value. It can be treated as a normal variable after this point, but the 
-    final result has to be of type `State`
+* **State.get**: aquire the state value.
     ```elm
-    State.get `andThen` \value -> 
-        -- value will be whatever the value of the 
-        -- state was
-        state (value + 42)
+    State.map2 (+) State.get State.get
+        |> State.run 42
+        -- == (84, 42)
     ```
 
 * **State.put**: set the state to a certain value.
     ```elm
     State.put 5
-        |> State.finalState 3
-        -- == 5 
+        |> State.run 3
+        -- == ((), 5)
     ```
-    Note that `State.set` discards the value currently stored in the state. 
+    Note that `State.put` discards the value currently stored in the state. 
 
 * **State.modify**: apply a function to the state; a combination of get and set
     ```elm
     State.modify (\v -> v + 1)
         |> State.map (\_ -> "finished")
+        |> State.run 42
+        -- == ("finished", 43)
     ```
-    Note that `State.modify` (because it combines get and set) discards
+    Note that `State.modify` (because it combines get and put) discards
     the value currently stored in the state.
     
 
@@ -133,7 +136,8 @@ andThen in production code.
 * **Limit the amount of code that is "in State" to a minimum**
     Try to keep functions pure and use the helper functions in this package
     to let the work on values "in State". 
-* **Limit the use of andThen** Instead of this 
+* **Limit the use of andThen in combination with State.state** 
+    Instead of this 
     ```elm
     State.get `andThen` \value -> state (f value)
     ```
@@ -146,13 +150,12 @@ andThen in production code.
 #Use cases  
 
 By design, most functional programs don't use state, because it's quite cumbersome to work with. 
-It's a good idea to see whether you can do without this library.  
+It's a good idea to see whether you can do without this library.
 
 Sometimes though, there are very good reasons. This is mostly the case in traditionally imperative algorithms that use
-nonlocal mutable variables. 
-
-In addition, the pattern described here is very generally applicable and 
-has surfaced in several libraries. 
+nonlocal mutable variables. There are a few other cases in standard elm where the pattern in the (motivation)[#movation]
+pops up, the primary ones being working with random values and updating (child) components. This library is not made 
+for the latter purposes, but its concepts transfer over. 
 
 Finally, there is a pattern from Haskell that uses State to hold configuration information (on its own called Read) and 
 to store logging information (on its own called Write). This pattern hasn't really found its way to elm, 
@@ -160,8 +163,8 @@ and it may not need to, because elm solves its problems differently. In any case
 
 ##Caching function results 
 
-Some computations are resource-intensive and should preferably only be performed once. Of course, 
-only one example can show how this works: let's implement fibonacci: 
+Some computations are resource-intensive and should preferably only be performed once. The classical example 
+of this is the fibonacci sequence. 
 
 ```elm
 fib : Int -> Int 
@@ -172,9 +175,10 @@ fib n =
         _ -> fib (n - 1) + fib (n - 2)
 ```
 
-This function is exponential (every evaluation recursively needs two more evaluations) and the `fib (n - 1)` branch will overlap with 
-the `fib (n - 2)` branch (they will do the same calculation). These problems can we solved by caching already calculated values. This 
-is where `State` comes in:
+Every evaluation of `fib` (except the base cases 0 and 1) requires two more evaluations. 
+Those evaluations each too require two more evaluations, making the time complexity of this function exponential. 
+Furthermore, the two trees (`fib (n - 1)` and `fib (n - 2)`) overlap, doing the same calculations twice. 
+These problems can we solved by caching already calculated values. This is where `State` comes in:
 
 ```elm
 fib : Int -> Int
@@ -265,7 +269,7 @@ myRandomValues =
 
 ##Recursively applying update
 
-**Don't use this library for this purpose, use [akbiggs/elm-effects](http://package.elm-lang.org/packages/akbiggs/elm-effects/3.0.0/Effects)**.
+**Don't use this library for this purpose, prefer [akbiggs/elm-effects](http://package.elm-lang.org/packages/akbiggs/elm-effects/3.0.0/Effects)**.
 
 The typical signature for update with TEA is 
 
@@ -276,8 +280,12 @@ of the types in the tuple, we get
 
     update' : Model -> (Cmd Msg, Model) 
 
-This is a function with the same pattern as State. The [elm-effects](http://package.elm-lang.org/packages/akbiggs/elm-effects/3.0.0/Effects) library uses 
-a pattern similar to this library to consecutively apply operations that generate side-effects to a value.
+This is a function with the same type as the ones wrapped in State. 
+The [elm-effects](http://package.elm-lang.org/packages/akbiggs/elm-effects/3.0.0/Effects) library uses 
+a pattern similar to this library to consecutively apply operations that generate side-effects to a value. 
+
+Elm-effects is a bit less powerful than this package (technically, it's just a Writer monad, not a State monad). 
+If you need the more powerful functions then reevaluate, use this package and maybe contribute to elm-effects.
 
 
 #<a name="derivation">Derivation</a>
