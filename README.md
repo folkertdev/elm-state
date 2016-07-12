@@ -31,7 +31,7 @@ working with State. For a more in-depth explanation of how the implementation wo
 There are three main functions for working with the wrapped state value: 
 
 * **State.get**: aquire the state value. It can be treated as a normal variable after this point, but the 
-    final value has to be of type `State`
+    final result has to be of type `State`
     ```elm
     State.get `andThen` \value -> 
         -- value will be whatever the value of the 
@@ -39,7 +39,7 @@ There are three main functions for working with the wrapped state value:
         state (value + 42)
     ```
 
-* **State.set**: set the state to a certain value.
+* **State.put**: set the state to a certain value.
     ```elm
     State.put 5
         |> State.finalState 3
@@ -59,7 +59,7 @@ There are three main functions for working with the wrapped state value:
 #Extracting results from State
 
 Remember, we really build a large `s -> (a, s)` function out of smaller components. To run this function, 
-we need an initialState, and get a final state and a final value. The function `State.run` does just that.
+we need an initial state, and get a final state and a final value. The function `State.run` does just that.
 
 ```elm
 run : s -> State s a -> (a, s)
@@ -71,7 +71,7 @@ run initialState (State f) =
 
 The composition operator for functions wrapped in `State` is called `andThen`. It is the primary way 
 to structure computations that involve `State`. When not used with care, this can lead to truly awful code.
-This is what the Haskellers at Facebook call [a code tornado](https://youtu.be/mlTO510zO78?t=34m7s). 
+This is what the Haskellers at Facebook call [a code tornado](https://youtu.be/mlTO510zO78?t=34m7s):
 
 ```elm
 cycle : Int -> State (Array Bool) (Maybe Int)
@@ -127,15 +127,15 @@ andThen in production code.
 
 ###Tips 
 
-* Prevent code tornadoes
-* Name subcomputations/functions appropriately 
-* A bit more verbose is probably better
-* Limit the amount of code that is "in State" to a minimum
+* **Prevent code tornadoes**
+* **Name subcomputations/functions appropriately**
+* **A bit more verbose is better than a bit shorter**
+* **Limit the amount of code that is "in State" to a minimum**
     Try to keep functions pure and use the helper functions in this package
     to let the work on values "in State". 
-* Instead of this 
-    ```
-    get `andThen` \value -> state (f value)
+* **Limit the use of andThen** Instead of this 
+    ```elm
+    State.get `andThen` \value -> state (f value)
     ```
 
     write 
@@ -148,10 +148,15 @@ andThen in production code.
 By design, most functional programs don't use state, because it's quite cumbersome to work with. 
 It's a good idea to see whether you can do without this library.  
 
-Sometimes though, there are very good reasons. 
+Sometimes though, there are very good reasons. This is mostly the case in traditionally imperative algorithms that use
+nonlocal mutable variables. 
 
 In addition, the pattern described here is very generally applicable and 
 has surfaced in several libraries. 
+
+Finally, there is a pattern from Haskell that uses State to hold configuration information (on its own called Read) and 
+to store logging information (on its own called Write). This pattern hasn't really found its way to elm, 
+and it may not need to, because elm solves its problems differently. In any case, experiment and see what works for you. 
 
 ##Caching function results 
 
