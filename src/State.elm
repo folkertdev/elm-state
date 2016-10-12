@@ -226,8 +226,8 @@ andMap =
 The [readme](https://github.com/folkertdev/elm-state) has a section on [structuring computation
 with `andThen`](https://github.com/folkertdev/elm-state#structuring-computation-with-andthen).
 -}
-andThen : State s a -> (a -> State s b) -> State s b
-andThen (State h) f =
+andThen : (a -> State s b) -> State s a -> State s b
+andThen f (State h) =
     let
         operation s =
             let
@@ -246,7 +246,7 @@ andThen (State h) f =
 -}
 join : State s (State s a) -> State s a
 join value =
-    value `andThen` identity
+    andThen identity value
 
 
 
@@ -299,7 +299,8 @@ An example using `State.get` and `State.modify`:
 -}
 modify : (s -> s) -> State s ()
 modify f =
-    get `andThen` \x -> put (f x)
+    get
+        |> andThen (put << f)
 
 
 {-| Thread the state through a computation,
@@ -434,6 +435,7 @@ foldlM f initialValue list =
     let
         -- f' : c -> (c -> State s d) -> d -> State s d
         f' x k z =
-            (f z x) `andThen` k
+            (f z x)
+                |> andThen k
     in
         List.foldr f' state list initialValue

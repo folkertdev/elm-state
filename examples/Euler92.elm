@@ -2,10 +2,13 @@ module Euler92 exposing (..)
 
 import Html exposing (text, Html)
 import State exposing (..)
+import Cache
 import Dict exposing (Dict)
 import Array exposing (Array)
 
 
+{-| Digits are reversed, but that's not important here
+-}
 digits : Int -> List Int
 digits value =
     if value == 0 then
@@ -14,14 +17,9 @@ digits value =
         value % 10 :: digits (value // 10)
 
 
-square : Int -> Int
-square x =
-    x * x
-
-
 step : Int -> Int
 step =
-    List.foldl ((+) << square) 0 << digits
+    List.foldl ((+) << (\x -> x * x)) 0 << digits
 
 
 terminator : Int -> State (Dict Int Int) Int
@@ -29,23 +27,7 @@ terminator n =
     if n == 1 || n == 89 then
         state n
     else
-        let
-            updateWithValue : Int -> State (Dict Int Int) Int
-            updateWithValue value =
-                modify (Dict.insert n value)
-                    |> State.map (\_ -> value)
-
-            updateIfNeeded : Dict Int Int -> State (Dict Int Int) Int
-            updateIfNeeded dict =
-                case Dict.get n dict of
-                    Just v ->
-                        state v
-
-                    Nothing ->
-                        terminator (step n)
-                            `andThen` updateWithValue
-        in
-            get `andThen` updateIfNeeded
+        Cache.generateIfMissing (terminator << step) n
 
 
 terminators : List Int -> State (Dict Int Int) (List Int)
@@ -94,6 +76,6 @@ solution n =
 
 
 main =
-    solution 99999
+    solution 999999
         |> toString
         |> text
