@@ -89,10 +89,12 @@ cycle n =
 
     in
         State.map Array.length State.get
-            `andThen` \length ->  
+            |> andThen (\length ->  
                 State.mapState mark (multiplesToMark length n)
-                    `andThen` \_ -> 
+                    |> andThen  (\_ -> 
                         State.map (toNextIndex n) State.get
+                    )
+            )
 ```
 
 This problem can be solved by extracting subcomputations and giving them a descriptive name. Not only is the final composition
@@ -119,7 +121,9 @@ cycle n =
         setNextIndex _ =
             State.map (toNextIndex n) State.get
     in
-        getArrayLength `andThen` markMultiples `andThen` setNextIndex
+        getArrayLength 
+            |> andThen markMultiples 
+            |> andThen setNextIndex
 ```
 
 When using andThen, try to break up your computation into small, reusable bits and give them a descriptive name. 
@@ -139,7 +143,7 @@ andThen in production code.
 * **Limit the use of andThen in combination with State.state** 
     Instead of this 
     ```elm
-    State.get `andThen` \value -> state (f value)
+    State.get |> andThen (\value -> state (f value))
     ```
 
     write 
@@ -211,9 +215,10 @@ fibHelper n =
 
                 Nothing ->
                     calculateStatefullFib n
-                        `andThen` addNewValue
+                        |> andThen addNewValue
     in
-        State.get `andThen` modifyWhenNeeded
+        State.get 
+            |> andThen modifyWhenNeeded
 ```
 
 Notice how, with the help of choosing descriptive names, this function reads like a 
@@ -367,7 +372,7 @@ also referred to as bind or `(>>=)`.
 
 #Problems 
 
-* **RangeError: Recursion limit exceeded**: This style of programming creates a lot of lambda expressions, which are not free (as in beer) in elm. 
+* **RangeError: Recursion limit exceeded**: This style of programming creates a lot of lambda expressions, which are not free in elm. 
 There is a chance that you'll run into errors with the javascript recursion limit. Try to break up you calculation into smaller chunks to 
 mitigate this. 
 

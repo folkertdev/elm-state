@@ -27,10 +27,9 @@ threeRandomInts seed =
         generator =
             State (Random.step (Random.int 0 10))
     in
-        (,,)
-            `map` generator
-            `andMap` generator
-            `andMap` generator
+        map (,,) generator
+            |> andMap generator
+            |> andMap generator
             |> State.finalValue seed
 
 
@@ -86,7 +85,8 @@ type Msg
 
 replace : State s a -> State s b -> State s b
 replace s new =
-    s `andThen` \_ -> new
+    s
+        |> andThen (\_ -> new)
 
 
 multiple : State Model (Cmd Msg)
@@ -171,7 +171,7 @@ subscriptions model =
 
 updater : (a -> b -> c) -> a -> State b c
 updater f elem =
-    get `andThen` (state << f elem)
+    State.map (f elem) State.get
 
 
 initialState =
@@ -185,7 +185,7 @@ initialState =
 
 
 result2 =
-    foldlM (\a b -> get `andThen` \v -> state (String.join ", " <| v ++ [ a, b ])) "" [ "a", "orange" ]
+    foldlM (\a b -> get |> andThen (\v -> state (String.join ", " <| v ++ [ a, b ]))) "" [ "a", "orange" ]
         |> State.run initialState
 
 
@@ -202,7 +202,7 @@ result =
 
 predicate : Day -> State { record | holiday : List Day } Bool
 predicate day =
-    get `andThen` \s -> state (day `List.member` (s.holiday ++ [ Sun, Sat ]))
+    State.map (\s -> day `List.member` (s.holiday ++ [ Sun, Sat ])) State.get
 
 
 view : Model -> Html Msg

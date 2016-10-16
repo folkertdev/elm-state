@@ -123,17 +123,7 @@ a function of type `s -> ( a, s )`.
 -}
 advance : (s -> ( a, s )) -> State s a
 advance f =
-    let
-        helper x =
-            let
-                ( value, newState ) =
-                    f x
-            in
-                put newState
-                    |> map (\_ -> value)
-    in
-        -- get `andThen` helper
-        State f
+    State f
 
 
 
@@ -191,10 +181,9 @@ map3 f step1 step2 step3 =
 -}
 map3 : (a -> b -> c -> d) -> State s a -> State s b -> State s c -> State s d
 map3 f step1 step2 step3 =
-    f
-        `map` step1
-        `andMap` step2
-        `andMap` step3
+    map f step1
+        |> andMap step2
+        |> andMap step3
 
 
 
@@ -213,12 +202,16 @@ expressions are equivalent.
 In general, using the `mapN` functions is preferable. The `mapN` functions can
 be defined up to an arbitrary `n` using `andMap`.
 
-    f `map` arg1 `andMap` arg2 ... `andMap` argN
-        == State.mapN f arg1 arg2 ... argN
+    State.mapN f arg1 arg2 ... argN
+        == State.map f arg1
+                |> andMap arg2
+                ...
+                |> andMap argN
+
 -}
-andMap : State s (a -> b) -> State s a -> State s b
+andMap : State s a -> State s (a -> b) -> State s b
 andMap =
-    map2 (<|)
+    flip (map2 (<|))
 
 
 {-| Chain two operations with state.
@@ -226,8 +219,8 @@ andMap =
 The [readme](https://github.com/folkertdev/elm-state) has a section on [structuring computation
 with `andThen`](https://github.com/folkertdev/elm-state#structuring-computation-with-andthen).
 -}
-andThen : State s a -> (a -> State s b) -> State s b
-andThen (State h) f =
+andThen : (a -> State s b) -> State s a -> State s b
+andThen f (State h) =
     let
         operation s =
             let
@@ -246,7 +239,8 @@ andThen (State h) f =
 -}
 join : State s (State s a) -> State s a
 join value =
-    value `andThen` identity
+    value
+        |> andThen identity
 
 
 
@@ -293,13 +287,15 @@ An example using `State.get` and `State.modify`:
 
                         Nothing ->
                             terminator (step n)
-                                `andThen` updateWithValue
+                                |> andThen updateWithValue
             in
-                get `andThen` updateIfNeeded
+                get
+                    |> andThen updateIfNeeded
 -}
 modify : (s -> s) -> State s ()
 modify f =
-    get `andThen` \x -> put (f x)
+    get
+        |> andThen (\x -> put (f x))
 
 
 {-| Thread the state through a computation,
@@ -434,6 +430,7 @@ foldlM f initialValue list =
     let
         -- f' : c -> (c -> State s d) -> d -> State s d
         f' x k z =
-            (f z x) `andThen` k
+            (f z x)
+                |> andThen k
     in
         List.foldr f' state list initialValue

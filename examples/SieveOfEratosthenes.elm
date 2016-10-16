@@ -41,8 +41,8 @@ cycle n =
             State.map (toNextIndex n) State.get
     in
         getArrayLength
-            `andThen` markMultiples
-            `andThen` setNextIndex
+            |> andThen markMultiples
+            |> andThen setNextIndex
 
 
 recurse : Int -> (Int -> State Sieve (Maybe Int)) -> State Sieve (Maybe Int)
@@ -57,7 +57,8 @@ recurse initial advance =
                 Just index ->
                     recurse index advance
     in
-        advance initial `andThen` advanceIfPossible
+        advance initial
+            |> andThen advanceIfPossible
 
 
 toNextIndex : Int -> Sieve -> Maybe Int

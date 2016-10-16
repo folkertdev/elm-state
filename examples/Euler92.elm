@@ -43,9 +43,10 @@ terminator n =
 
                     Nothing ->
                         terminator (step n)
-                            `andThen` updateWithValue
+                            |> andThen updateWithValue
         in
-            get `andThen` updateIfNeeded
+            get
+                |> andThen updateIfNeeded
 
 
 terminators : List Int -> State (Dict Int Int) (List Int)
