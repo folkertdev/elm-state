@@ -80,6 +80,9 @@ Elm wants to be a simple, easy to learn language, and therefore monads aren't re
 If anything in the docs here or in the repository is still unclear, please open an issue [on the repo](https://github.com/folkertdev/elm-state/issues).
 -}
 
+import Trampoline exposing (Trampoline, done, jump, evaluate)
+
+
 -- Type and Constructors
 
 
