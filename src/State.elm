@@ -20,6 +20,7 @@ module State
         , run
         , finalState
         , finalValue
+        , makeTailRecursive
         )
 
 {-| This library provides ways to compose functions of the type
@@ -64,6 +65,12 @@ level documentation, please see the [readme](https://github.com/folkertdev/elm-s
 
 #Generalized list functions
 @docs traverse, combine, filterM, foldlM
+
+#Safe recursion
+The archetypal Haskell implementation for State will overflow the stack in strict languages like Elm.
+The generalized list functions above use the function below to unsure tail-recursion. Because Elm
+has tail-call elimination, the evaluation of State is written as a loop and runs in constant space.
+@docs makeTailRecursive
 
 #Notes for the Haskellers/curious
 
@@ -379,10 +386,16 @@ This function is also called `mapM`.
 traverse : (a -> State s b) -> List a -> State s (List b)
 traverse f list =
     let
-        folder elem accum =
-            map2 (::) (f elem) accum
+        go ( values, s ) =
+            case values of
+                [] ->
+                    state (Ok s)
+
+                x :: xs ->
+                    map (\list -> Err ( xs, map2 (::) (f x) (state list) )) s
     in
-        List.foldr folder (state []) list
+        makeTailRecursive go ( list, state [] )
+            |> join
 
 
 {-| Combine a list of State's into one by composition.
@@ -414,16 +427,22 @@ combine =
 filterM : (a -> State s Bool) -> List a -> State s (List a)
 filterM predicate list =
     let
-        combine x keep ys =
+        combine x accum keep =
             if keep then
-                x :: ys
+                x :: accum
             else
-                ys
+                accum
 
-        folder x accum =
-            map2 (combine x) (predicate x) accum
+        go ( values, s ) =
+            case values of
+                [] ->
+                    state (Ok s)
+
+                x :: xs ->
+                    map (\list -> Err ( xs, map (combine x list) (predicate x) )) s
     in
-        List.foldr folder (state []) list
+        makeTailRecursive go ( list, state [] )
+            |> join
 
 
 {-| Compose a list of updated states into one. Also called `foldM`.
@@ -431,9 +450,58 @@ filterM predicate list =
 foldlM : (b -> a -> State s b) -> b -> List a -> State s b
 foldlM f initialValue list =
     let
-        -- f' : c -> (c -> State s d) -> d -> State s d
-        f' x k z =
-            (f z x)
-                |> andThen k
+        go ( values, s ) =
+            case values of
+                [] ->
+                    state (Ok s)
+
+                x :: xs ->
+                    map (\accum -> Err ( xs, f accum x )) s
     in
-        List.foldr f' state list initialValue
+        makeTailRecursive go ( list, state initialValue )
+            |> join
+
+
+{-| -}
+replicateM : Int -> State s a -> State s (List a)
+replicateM n s =
+    let
+        go ( n, xs ) =
+            if n < 1 then
+                state (Ok xs)
+            else
+                map (\x -> Err ( n - 1, x :: xs )) s
+    in
+        makeTailRecursive go ( n, [] )
+
+
+zipWithM : (a -> b -> State s c) -> List a -> List b -> State s (List c)
+zipWithM f ps qs =
+    combine (List.map2 f ps qs)
+
+
+mapAndUnzipM : (a -> State s ( b, c )) -> List a -> State s ( List b, List c )
+mapAndUnzipM f xs =
+    map List.unzip (traverse f xs)
+
+
+{-| Make a State-function tail-recursive
+
+
+The core idea is to peel layers of the computation, instead
+of doing the whole thing at once. When the peeling is done right,
+the compiler will optimize using tail-call elimination
+-}
+makeTailRecursive : (a -> State s (Result a b)) -> a -> State s b
+makeTailRecursive f x =
+    let
+        -- this has some parallels with unfolds
+        go ( x, s ) =
+            case run s (f x) of
+                ( Err x, s ) ->
+                    go ( x, s )
+
+                ( Ok x, s ) ->
+                    ( x, s )
+    in
+        State (\s -> go ( x, s ))
