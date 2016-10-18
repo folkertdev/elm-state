@@ -1,4 +1,4 @@
-module Main exposing (..)
+module Euler14 exposing (..)
 
 import State exposing (State, andThen)
 import Dict exposing (Dict)
@@ -53,10 +53,10 @@ generateIfMissing generator key =
 
 
 upper =
-    1000000
+    500000
 
 
-folder key value accum =
+folder upper key value accum =
     if key <= upper then
         let
             size =
@@ -75,14 +75,14 @@ folder key value accum =
         accum
 
 
-largest =
+largest upper =
     generates [1..upper]
         |> State.finalState (Dict.fromList [ ( 1, [ 1 ] ) ])
-        |> Dict.foldr folder Nothing
+        |> Dict.foldr (folder upper) Nothing
 
 
 main =
-    largest
+    largest upper
         |> toString
         |> text
 
