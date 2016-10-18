@@ -87,9 +87,6 @@ Elm wants to be a simple, easy to learn language, and therefore monads aren't re
 If anything in the docs here or in the repository is still unclear, please open an issue [on the repo](https://github.com/folkertdev/elm-state/issues).
 -}
 
-import Trampoline exposing (Trampoline, done, jump, evaluate)
-
-
 -- Type and Constructors
 
 
@@ -144,33 +141,29 @@ advance f =
 -}
 map : (a -> b) -> State s a -> State s b
 map f (State step) =
-    let
-        helper val =
+    State <|
+        \currentState ->
             let
                 ( value, newState ) =
-                    step val
+                    step currentState
             in
                 ( f value, newState )
-    in
-        State helper
 
 
 {-| Apply a function to the value of two states. The newest state will be kept
 -}
 map2 : (a -> b -> c) -> State s a -> State s b -> State s c
 map2 f (State step1) (State step2) =
-    let
-        helper value =
+    State <|
+        \currentState ->
             let
-                ( value1, newStep ) =
-                    step1 value
+                ( value1, newState ) =
+                    step1 currentState
 
-                ( value2, newerStep ) =
-                    step2 newStep
+                ( value2, newerState ) =
+                    step2 newState
             in
-                ( f value1 value2, newerStep )
-    in
-        State helper
+                ( f value1 value2, newerState )
 
 
 {-| Apply a function to the value of three states. The newest state will be kept
@@ -231,8 +224,8 @@ with `andThen`](https://github.com/folkertdev/elm-state#structuring-computation-
 -}
 andThen : (a -> State s b) -> State s a -> State s b
 andThen f (State h) =
-    let
-        operation s =
+    State <|
+        \s ->
             let
                 ( a, newState ) =
                     h s
@@ -241,16 +234,20 @@ andThen f (State h) =
                     f a
             in
                 g newState
-    in
-        State operation
 
 
 {-| Discard a level of state.
 -}
 join : State s (State s a) -> State s a
-join value =
-    value
-        |> andThen identity
+join (State f) =
+    -- andThen identity (State f)
+    State <|
+        \s ->
+            let
+                ( State g, newState ) =
+                    f s
+            in
+                g newState
 
 
 
@@ -304,8 +301,7 @@ An example using `State.get` and `State.modify`:
 -}
 modify : (s -> s) -> State s ()
 modify f =
-    get
-        |> andThen (\x -> put (f x))
+    State (\s -> ( (), f s ))
 
 
 {-| Thread the state through a computation,
