@@ -70,7 +70,9 @@ solution n =
         -}
         cache : Dict Int Int
         cache =
-            finalState Dict.empty (terminators [1..(step upperLimit)])
+            List.range 1 (step upperLimit)
+                |> terminators
+                |> finalState Dict.empty
                 |> Dict.insert 1 1
                 |> Dict.insert 89 89
 

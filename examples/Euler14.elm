@@ -76,7 +76,7 @@ folder upper key value accum =
 
 
 largest upper =
-    generates [1..upper]
+    generates (List.range 1 upper)
         |> State.finalState (Dict.fromList [ ( 1, [ 1 ] ) ])
         |> Dict.foldr (folder upper) Nothing
 

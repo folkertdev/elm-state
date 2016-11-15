@@ -3,7 +3,6 @@ module Fibonacci exposing (..)
 import State exposing (state, andThen, State)
 import Dict exposing (Dict)
 import Html exposing (Html, text)
-import Trampoline exposing (..)
 
 
 fib : Int -> Int
@@ -58,47 +57,7 @@ fibsHelper =
 
 
 main =
-    -- fibs [0..9]
-    replicateM' 10 (State.state [ 2 ])
-        |> State.run 3
+    List.range 0 9
+        |> fibs
         |> toString
         |> text
-
-
-tailRec : (a -> State s (Result a b)) -> a -> State s b
-tailRec f x =
-    let
-        go ( x, s ) =
-            case State.run s (f x) of
-                ( Err x, s ) ->
-                    go ( x, s )
-
-                ( Ok x, s ) ->
-                    ( x, s )
-    in
-        State.advance (\s -> go ( x, s ))
-
-
-replicateM : Int -> State s a -> State s (List a)
-replicateM n state =
-    let
-        go ( n, xs ) =
-            if n < 1 then
-                State.state (Ok xs)
-            else
-                State.map (\x -> Err ( n - 1, x :: xs )) state
-    in
-        tailRec go ( n, [] )
-
-
-replicateM' : Int -> State s a -> State s (List a)
-replicateM' n s =
-    let
-        go ( n, xs ) =
-            if n <= 0 then
-                done xs
-            else
-                jump (\_ -> go ( n - 1, State.map2 (::) s xs ))
-    in
-        go ( n, state [] )
-            |> evaluate

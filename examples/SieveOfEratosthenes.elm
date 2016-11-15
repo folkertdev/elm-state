@@ -15,7 +15,7 @@ type alias Config =
 
 range : Int -> Int -> Int -> List Int
 range start stop step =
-    [0..((stop - start) // step)]
+    List.range 0 ((stop - start) // step)
         |> List.map (\v -> v * step + start)
 
 
@@ -74,7 +74,7 @@ toNextIndex currentIndex sieve =
     in
         Array.filter predicate sieve
             |> Array.get 0
-            |> (\m -> m `Maybe.andThen` identity)
+            |> (\m -> m |> Maybe.andThen identity)
 
 
 primesUpTo : Int -> Array Int
