@@ -15,7 +15,7 @@ type alias Config =
 
 range : Int -> Int -> Int -> List Int
 range start stop step =
-    [0..((stop - start) // step)]
+    List.range 0 ((stop - start) // step)
         |> List.map (\v -> v * step + start)
 
 
@@ -41,8 +41,8 @@ cycle n =
             State.map (toNextIndex n) State.get
     in
         getArrayLength
-            `andThen` markMultiples
-            `andThen` setNextIndex
+            |> andThen markMultiples
+            |> andThen setNextIndex
 
 
 recurse : Int -> (Int -> State Sieve (Maybe Int)) -> State Sieve (Maybe Int)
@@ -57,7 +57,7 @@ recurse initial advance =
                 Just index ->
                     recurse index advance
     in
-        advance initial `andThen` advanceIfPossible
+        advance initial |> andThen advanceIfPossible
 
 
 toNextIndex : Int -> Sieve -> Maybe Int
@@ -73,7 +73,7 @@ toNextIndex currentIndex sieve =
     in
         Array.filter predicate sieve
             |> Array.get 0
-            |> (\m -> m `Maybe.andThen` identity)
+            |> (\m -> m |> Maybe.andThen identity)
 
 
 primesUpTo : Int -> Array Int

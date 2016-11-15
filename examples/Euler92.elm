@@ -43,9 +43,9 @@ terminator n =
 
                     Nothing ->
                         terminator (step n)
-                            `andThen` updateWithValue
+                            |> andThen updateWithValue
         in
-            get `andThen` updateIfNeeded
+            get |> andThen updateIfNeeded
 
 
 terminators : List Int -> State (Dict Int Int) (List Int)
@@ -69,7 +69,7 @@ solution n =
         -}
         cache : Dict Int Int
         cache =
-            finalState Dict.empty (terminators [1..(step upperLimit)])
+            finalState Dict.empty (terminators (List.range 1 (step upperLimit)))
                 |> Dict.insert 1 1
                 |> Dict.insert 89 89
 
