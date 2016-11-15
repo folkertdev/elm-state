@@ -179,7 +179,9 @@ map3
     -> State s c
     -> State s d
 map3 f step1 step2 step3 =
-    f `map` step1 `andMap` step2 `andMap` step3
+    map f step1
+        |> andMap step2
+        |> andMap step3
 ```
 -}
 map3 : (a -> b -> c -> d) -> State s a -> State s b -> State s c -> State s d
@@ -199,8 +201,7 @@ This is very useful for applying stateful arguments one by one.
 The use of `andMap` can be substituted by using mapN. The following
 expressions are equivalent.
 
-    f `map` arg1 `andMap` arg2 == State.map2 f arg1 args
-
+    map f arg1 |> andMap arg2 == State.map2 f arg1 arg2
 
 In general, using the `mapN` functions is preferable. The `mapN` functions can
 be defined up to an arbitrary `n` using `andMap`.
@@ -332,7 +333,7 @@ See [Fibonacci.elm](https://github.com/folkertdev/elm-state/blob/master/examples
 -}
 finalValue : s -> State s a -> a
 finalValue initialState =
-    fst << run initialState
+    Tuple.first << run initialState
 
 
 {-| Thread the state through a computation,
@@ -356,7 +357,7 @@ See [SieveOfErastosthenes.elm](https://github.com/folkertdev/elm-state/blob/mast
 -}
 finalState : s -> State s a -> s
 finalState initialState =
-    snd << run initialState
+    Tuple.second << run initialState
 
 
 
@@ -416,7 +417,7 @@ combine =
             |> State.map (List.map like)
             |> State.map (String.join " and ")
             |> State.run [ "cat", "dog", "hamster" ]
-            -- ==  (["I like hamsters"], ["cat", "dog", "hamster"])
+            -- ==  ("I like hamsters", ["cat", "dog", "hamster"])
 
 
 -}
