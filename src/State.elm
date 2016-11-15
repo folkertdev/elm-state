@@ -68,7 +68,7 @@ level documentation, please see the [readme](https://github.com/folkertdev/elm-s
 
 #Safe recursion
 The archetypal Haskell implementation for State will overflow the stack in strict languages like Elm.
-The generalized list functions above use the function below to unsure tail-recursion. Because Elm
+The generalized list functions above use the function below to ensure tail-recursion. Because Elm
 has tail-call elimination, the evaluation of State is written as a loop and runs in constant space.
 @docs makeTailRecursive
 
@@ -484,10 +484,11 @@ mapAndUnzipM f xs =
 
 {-| Make a State-function tail-recursive
 
-
 The core idea is to peel layers of the computation, instead
 of doing the whole thing at once. When the peeling is done right,
 the compiler will optimize using tail-call elimination
+
+Look at this package's source for usage examples
 -}
 makeTailRecursive : (a -> State s (Result a b)) -> a -> State s b
 makeTailRecursive f x =
