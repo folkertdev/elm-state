@@ -89,10 +89,10 @@ cycle n =
 
     in
         State.map Array.length State.get
-            `andThen` \length ->  
-                State.mapState mark (multiplesToMark length n)
-                    `andThen` \_ -> 
-                        State.map (toNextIndex n) State.get
+            |> andThen (\length ->  
+                State.mapState mark (multiplesToMark length n))
+                    |> andThen (\_ ->
+                        State.map (toNextIndex n) State.get)
 ```
 
 This problem can be solved by extracting subcomputations and giving them a descriptive name. Not only is the final composition
@@ -113,13 +113,13 @@ cycle n =
             State.map Array.length State.get
 
         markMultiples length =
-            -- mapState shares the Array Int beteween invocations of mark.
+            -- mapState shares the Array Int between invocations of mark.
             State.mapState mark (multiplesToMark length n)
 
         setNextIndex _ =
             State.map (toNextIndex n) State.get
     in
-        getArrayLength `andThen` markMultiples `andThen` setNextIndex
+        getArrayLength |> andThen markMultiples |> andThen setNextIndex
 ```
 
 When using andThen, try to break up your computation into small, reusable bits and give them a descriptive name. 
@@ -211,9 +211,9 @@ fibHelper n =
 
                 Nothing ->
                     calculateStatefullFib n
-                        `andThen` addNewValue
+                        |> andThen addNewValue
     in
-        State.get `andThen` modifyWhenNeeded
+        State.get |> andThen modifyWhenNeeded
 ```
 
 Notice how, with the help of choosing descriptive names, this function reads like a 
@@ -264,7 +264,7 @@ myRandomValues =
     in
         Random.map3 (,,) myGenerator myGenerator myGenerator
             |> (flip Random.step) seed
-            |> fst
+            |> Tuple.first
 ```
 
 ##Recursively applying update

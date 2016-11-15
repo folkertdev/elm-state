@@ -35,9 +35,9 @@ fibHelper n =
 
                 Nothing ->
                     calculateStatefullFib n
-                        `andThen` addNewValue
+                        |> andThen addNewValue
     in
-        State.get `andThen` modifyWhenNeeded
+        State.get |> andThen modifyWhenNeeded
 
 
 fibs : List Int -> List Int
@@ -56,6 +56,6 @@ fibsHelper =
 
 
 main =
-    fibs [0..9]
+    fibs (List.range 0 9)
         |> toString
         |> text

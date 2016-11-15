@@ -1,8 +1,7 @@
 module Main exposing (..)
 
 import State exposing (..)
-import Html exposing (..)
-import Html.App as Html
+import Html exposing (Html, div, h1, text, button)
 import Html.Events exposing (..)
 import Random exposing (Seed, initialSeed)
 import Debug
@@ -27,11 +26,10 @@ threeRandomInts seed =
         generator =
             State (Random.step (Random.int 0 10))
     in
-        (,,)
-            `map` generator
-            `andMap` generator
-            `andMap` generator
-            |> State.finalValue seed
+        map (,,) generator
+        |> andMap generator
+        |> andMap generator
+        |> State.finalValue seed
 
 
 randint : State Seed Int
@@ -86,7 +84,7 @@ type Msg
 
 replace : State s a -> State s b -> State s b
 replace s new =
-    s `andThen` \_ -> new
+    s |> andThen (\_ -> new)
 
 
 multiple : State Model (Cmd Msg)
@@ -171,7 +169,7 @@ subscriptions model =
 
 updater : (a -> b -> c) -> a -> State b c
 updater f elem =
-    get `andThen` (state << f elem)
+    get |> andThen (state << f elem)
 
 
 initialState =
@@ -185,7 +183,7 @@ initialState =
 
 
 result2 =
-    foldlM (\a b -> get `andThen` \v -> state (String.join ", " <| v ++ [ a, b ])) "" [ "a", "orange" ]
+    foldlM (\a b -> get |> andThen (\v -> state (String.join ", " <| v ++ [ a, b ]))) "" [ "a", "orange" ]
         |> State.run initialState
 
 
@@ -202,7 +200,7 @@ result =
 
 predicate : Day -> State { record | holiday : List Day } Bool
 predicate day =
-    get `andThen` \s -> state (day `List.member` (s.holiday ++ [ Sun, Sat ]))
+    get |> andThen (\s -> state (List.member day (s.holiday ++ [ Sun, Sat ])))
 
 
 view : Model -> Html Msg
