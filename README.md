@@ -358,7 +358,7 @@ compose (State f) g =
         State helper
 ```
 
-Functions of the type `(a -> Wrapper b) -> Wrapper a -> Wrapper b` are called `andThen` in elm (see
+Functions of the type `(a -> Wrapper b) -> Wrapper a -> Wrapper b` are called `andThen` in Elm (see
 [Maybe.andThen](http://package.elm-lang.org/packages/elm-lang/core/5.0.0/Maybe#andThen) and
 [Random.andThen](http://package.elm-lang.org/packages/elm-lang/core/5.0.0/Random#andThen)), but sometimes
 also referred to as bind or `(>>=)`.
@@ -367,6 +367,6 @@ also referred to as bind or `(>>=)`.
 
 #Problems
 
-* **RangeError: Recursion limit exceeded**: This style of programming creates a lot of lambda expressions, which are not free (as in beer) in elm.
+* **RangeError: Recursion limit exceeded**: This style of programming creates a lot of lambda expressions, which are not free (as in beer) in Elm.
 There is a chance that you'll run into errors with the javascript recursion limit. Try to break up you calculation into smaller chunks to
 mitigate this.
