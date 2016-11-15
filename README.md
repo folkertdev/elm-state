@@ -115,7 +115,7 @@ cycle n =
             State.map Array.length State.get
 
         markMultiples length =
-            -- mapState shares the Array Int beteween invocations of mark.
+            -- mapState shares the Array Int between invocations of mark.
             State.mapState mark (multiplesToMark length n)
 
         setNextIndex _ =
@@ -127,7 +127,7 @@ cycle n =
 ```
 
 When using andThen, try to break up your computation into small, reusable bits and give them a descriptive name. 
-A general elm principle is that the shortest code is often not the best code. Don't take shortcuts with
+A general Elm principle is that the shortest code is often not the best code. Don't take shortcuts with
 andThen in production code.
 
 
@@ -157,13 +157,13 @@ By design, most functional programs don't use state, because it's quite cumberso
 It's a good idea to see whether you can do without this library.
 
 Sometimes though, there are very good reasons. This is mostly the case in traditionally imperative algorithms that use
-nonlocal mutable variables. There are a few other cases in standard elm where the pattern in the (motivation)[#movation]
+nonlocal mutable variables. There are a few other cases in standard Elm where the pattern in the (motivation)[#movation]
 pops up, the primary ones being working with random values and updating (child) components. This library is not made 
 for the latter purposes, but its concepts transfer over. 
 
 Finally, there is a pattern from Haskell that uses State to hold configuration information (on its own called Read) and 
-to store logging information (on its own called Write). This pattern hasn't really found its way to elm, 
-and it may not need to, because elm solves its problems differently. In any case, experiment and see what works for you. 
+to store logging information (on its own called Write). This pattern hasn't really found its way to Elm, 
+and it may not need to, because Elm solves its problems differently. In any case, experiment and see what works for you. 
 
 ##Caching function results 
 
@@ -363,7 +363,7 @@ compose (State f) g =
         State helper 
 ```
 
-Functions of the type `Wrapper a -> (a -> Wrapper b) -> Wrapper b` are called `andThen` in elm (see 
+Functions of the type `(a -> Wrapper b) -> Wrapper a -> Wrapper b` are called `andThen` in elm (see 
 [Maybe.andThen](http://package.elm-lang.org/packages/elm-lang/core/4.0.1/Maybe#andThen) and 
 [Random.andThen](http://package.elm-lang.org/packages/elm-lang/core/4.0.1/Random#andThen)), but sometimes
 also referred to as bind or `(>>=)`.
@@ -372,9 +372,10 @@ also referred to as bind or `(>>=)`.
 
 #Problems 
 
-* **RangeError: Recursion limit exceeded**: This style of programming creates a lot of lambda expressions, which are not free in elm. 
-There is a chance that you'll run into errors with the javascript recursion limit. Try to break up you calculation into smaller chunks to 
-mitigate this. 
+* **RangeError: Recursion limit exceeded**: Older versions of this package would often throw this error at 
+runtime. Most of these cases are now fixed, but if you run into this error, please report it.  
+
+
 
 
 
