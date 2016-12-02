@@ -269,7 +269,7 @@ myRandomValues =
     in
         Random.map3 (,,) myGenerator myGenerator myGenerator
             |> (flip Random.step) seed
-            |> fst
+            |> Tuple.first
 ```
 
 ##Recursively applying update
@@ -363,9 +363,9 @@ compose (State f) g =
         State helper 
 ```
 
-Functions of the type `(a -> Wrapper b) -> Wrapper a -> Wrapper b` are called `andThen` in elm (see 
-[Maybe.andThen](http://package.elm-lang.org/packages/elm-lang/core/4.0.1/Maybe#andThen) and 
-[Random.andThen](http://package.elm-lang.org/packages/elm-lang/core/4.0.1/Random#andThen)), but sometimes
+Functions of the type `(a -> Wrapper b) -> Wrapper a -> Wrapper b` are called `andThen` in Elm (see
+[Maybe.andThen](http://package.elm-lang.org/packages/elm-lang/core/5.0.0/Maybe#andThen) and
+[Random.andThen](http://package.elm-lang.org/packages/elm-lang/core/5.0.0/Random#andThen)), but sometimes
 also referred to as bind or `(>>=)`.
 
 
