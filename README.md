@@ -274,7 +274,7 @@ myRandomValues =
 
 ##Recursively applying update
 
-**Don't use this library for this purpose, prefer [akbiggs/elm-effects](http://package.elm-lang.org/packages/akbiggs/elm-effects/3.0.0/Effects)**.
+**Don't use this library for this purpose, prefer [Fresheyeball/elm-return](http://package.elm-lang.org/packages/Fresheyeball/elm-return/latest)**.
 
 The typical signature for update with TEA is 
 
@@ -286,7 +286,7 @@ of the types in the tuple, we get
     update' : Model -> (Cmd Msg, Model) 
 
 This is a function with the same type as the ones wrapped in State. 
-The [elm-effects](http://package.elm-lang.org/packages/akbiggs/elm-effects/3.0.0/Effects) library uses 
+The [elm-effects](http://package.elm-lang.org/packages/akbiggs/elm-effects/latest/Effects) library uses 
 a pattern similar to this library to consecutively apply operations that generate side-effects to a value. 
 
 Elm-effects is a bit less powerful than this package (technically, it's just a Writer monad, not a State monad). 
@@ -364,8 +364,8 @@ compose (State f) g =
 ```
 
 Functions of the type `(a -> Wrapper b) -> Wrapper a -> Wrapper b` are called `andThen` in Elm (see
-[Maybe.andThen](http://package.elm-lang.org/packages/elm-lang/core/5.0.0/Maybe#andThen) and
-[Random.andThen](http://package.elm-lang.org/packages/elm-lang/core/5.0.0/Random#andThen)), but sometimes
+[Maybe.andThen](http://package.elm-lang.org/packages/elm-lang/core/latest/Maybe#andThen) and
+[Random.andThen](http://package.elm-lang.org/packages/elm-lang/core/latest/Random#andThen)), but sometimes
 also referred to as bind or `(>>=)`.
 
 
