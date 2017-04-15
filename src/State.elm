@@ -10,6 +10,7 @@ module State
         , embed
         , filterM
         , foldlM
+        , foldrM
         , andMap
         , andThen
         , join
@@ -64,7 +65,7 @@ level documentation, please see the [readme](https://github.com/folkertdev/elm-s
 @docs run, finalValue, finalState
 
 #Generalized list functions
-@docs traverse, combine, filterM, foldlM
+@docs traverse, combine, filterM, foldlM, foldrM
 
 #Safe recursion
 The archetypal Haskell implementation for State will overflow the stack in strict languages like Elm.
@@ -382,17 +383,7 @@ This function is also called `mapM`.
 -}
 traverse : (a -> State s b) -> List a -> State s (List b)
 traverse f list =
-    let
-        go ( values, s ) =
-            case values of
-                [] ->
-                    state (Ok s)
-
-                x :: xs ->
-                    map (\list -> Err ( xs, map2 (::) (f x) (state list) )) s
-    in
-        makeTailRecursive go ( list, state [] )
-            |> join
+    foldrM (\elem accum -> map2 (::) (f elem) (state accum)) [] list
 
 
 {-| Combine a list of State's into one by composition.
@@ -424,25 +415,21 @@ combine =
 filterM : (a -> State s Bool) -> List a -> State s (List a)
 filterM predicate list =
     let
-        combine x accum keep =
-            if keep then
-                x :: accum
-            else
-                accum
-
-        go ( values, s ) =
-            case values of
-                [] ->
-                    state (Ok s)
-
-                x :: xs ->
-                    map (\list -> Err ( xs, map (combine x list) (predicate x) )) s
+        folder elem accum =
+            let
+                keepIfTrue verdict =
+                    if verdict then
+                        (elem :: accum)
+                    else
+                        accum
+            in
+                predicate elem
+                    |> map keepIfTrue
     in
-        makeTailRecursive go ( list, state [] )
-            |> join
+        foldrM folder [] list
 
 
-{-| Compose a list of updated states into one. Also called `foldM`.
+{-| Compose a list of updated states into one from the left. Also called `foldM`.
 -}
 foldlM : (b -> a -> State s b) -> b -> List a -> State s b
 foldlM f initialValue list =
@@ -459,7 +446,15 @@ foldlM f initialValue list =
             |> join
 
 
-{-| -}
+{-| Compose a list of updated states into one from the right
+-}
+foldrM : (a -> b -> State s b) -> b -> List a -> State s b
+foldrM f initialValue =
+    foldlM (flip f) initialValue << List.reverse
+
+
+{-| Perform an action n times, gathering the results
+-}
 replicateM : Int -> State s a -> State s (List a)
 replicateM n s =
     let
@@ -494,12 +489,12 @@ makeTailRecursive : (a -> State s (Result a b)) -> a -> State s b
 makeTailRecursive f x =
     let
         -- this has some parallels with unfolds
-        go ( x, s ) =
-            case run s (f x) of
-                ( Err x, s ) ->
-                    go ( x, s )
+        go ( elem, accum ) =
+            case run accum (f elem) of
+                ( Err elem, accum ) ->
+                    go ( elem, accum )
 
-                ( Ok x, s ) ->
-                    ( x, s )
+                ( Ok elem, accum ) ->
+                    ( elem, accum )
     in
         State (\s -> go ( x, s ))

@@ -4,7 +4,7 @@ import Test exposing (..)
 import Expect
 import Fuzz exposing (list, int, tuple, string)
 import String
-import State exposing (andThen, state)
+import State exposing (State, andThen, state)
 
 
 evaluate a b =
@@ -103,5 +103,29 @@ all =
                             state 2
                     in
                         evaluate (andThen g (andThen f m)) (andThen (\x -> f x |> andThen g) m)
+            ]
+        , describe "traverse"
+            [ test "expect traverse leaves the list the same" <|
+                \() ->
+                    let
+                        list =
+                            [ 1, 2, 3 ]
+                    in
+                        list
+                            |> State.traverse State.state
+                            |> State.finalValue ()
+                            |> Expect.equal list
+            , test "foldrM doesn't blow the stack" <|
+                \() ->
+                    List.range 0 100000
+                        |> State.foldrM (\a b -> state (a + b)) 0
+                        |> State.finalValue ()
+                        |> Expect.equal (List.foldr (+) 0 <| List.range 0 100000)
+            , test "filterM doesn't blow the stack" <|
+                \() ->
+                    List.range 0 100000
+                        |> State.filterM (\x -> state (x > -1))
+                        |> State.finalValue ()
+                        |> Expect.equal (List.filter (\v -> v > -1) <| List.range 0 100000)
             ]
         ]
