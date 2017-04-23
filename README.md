@@ -4,7 +4,7 @@ Threading state through computation
 This library provides ways to compose functions of the type 
 `s -> (a, s)`. 
 
-#<a name="motivation">Motivation</a>
+## <a name="motivation">Motivation</a>
 
 From time to time, you'll see a pattern like this in your code 
 
@@ -29,7 +29,7 @@ working with State. For a more in-depth explanation of how the implementation wo
 *This library is advanced and relatively abstract. 
 If anything is unclear, please [open an issue](https://github.com/folkertdev/elm-state/issues)*.
 
-#Working with values within State 
+## Working with values within State 
 
 There are three main functions for working with the wrapped state value: 
 
@@ -59,7 +59,7 @@ There are three main functions for working with the wrapped state value:
     the value currently stored in the state.
     
 
-#Extracting results from State
+## Extracting results from State
 
 Remember, we really build a large `s -> (a, s)` function out of smaller components. To run this function, 
 we need an initial state, and get a final state and a final value. The function `State.run` does just that.
@@ -70,7 +70,7 @@ run initialState (State f) =
     f initialState
 ```
 
-#Structuring computation with andThen
+## Structuring computation with andThen
 
 The composition operator for functions wrapped in `State` is called `andThen`. It is the primary way 
 to structure computations that involve `State`. When not used with care, this can lead to truly awful code.
@@ -132,7 +132,7 @@ andThen in production code.
 
 
 
-###Tips 
+### Tips 
 
 * **Prevent code tornadoes**
 * **Name subcomputations/functions appropriately**
@@ -151,7 +151,7 @@ andThen in production code.
     State.map f State.get
     ```
 
-#Use cases  
+# Use cases  
 
 By design, most functional programs don't use state, because it's quite cumbersome to work with. 
 It's a good idea to see whether you can do without this library.
@@ -165,7 +165,7 @@ Finally, there is a pattern from Haskell that uses State to hold configuration i
 to store logging information (on its own called Write). This pattern hasn't really found its way to Elm, 
 and it may not need to, because Elm solves its problems differently. In any case, experiment and see what works for you. 
 
-##Caching function results 
+## Caching function results 
 
 Some computations are resource-intensive and should preferably only be performed once. The classical example 
 of this is the fibonacci sequence. 
@@ -242,7 +242,7 @@ fibsHelper =
 ```
 
 
-##Threading a Random seed
+## Threading a Random seed
 
 When working with random values, you have to update the seed after every computation.
 Note how this is very similar to the general pattern in the [motivation](#motivation) section.
@@ -272,7 +272,7 @@ myRandomValues =
             |> Tuple.first
 ```
 
-##Recursively applying update
+## Recursively applying update
 
 **Don't use this library for this purpose, prefer [Fresheyeball/elm-return](http://package.elm-lang.org/packages/Fresheyeball/elm-return/latest)**.
 
@@ -293,7 +293,7 @@ Elm-effects is a bit less powerful than this package (technically, it's just a W
 If you need the more powerful functions then reevaluate, use this package and maybe contribute to elm-effects.
 
 
-#<a name="derivation">Derivation</a>
+# <a name="derivation">Derivation</a>
 
 A derivation of how the composition of functions of the form `s -> (a, s)` works.
 
@@ -370,7 +370,7 @@ also referred to as bind or `(>>=)`.
 
 
 
-#Problems 
+# Problems 
 
 * **RangeError: Recursion limit exceeded**: Older versions of this package would often throw this error at 
 runtime. Most of these cases are now fixed, but if you run into this error, please report it.  
