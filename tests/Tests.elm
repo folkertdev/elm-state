@@ -11,8 +11,7 @@ evaluate a b =
     Expect.equal (State.run () a) (State.run () b)
 
 
-all : Test
-all =
+x =
     describe "Sample Test Suite"
         [ describe "Unit test examples"
             [ test "Join = AndThen identity" <|
@@ -134,23 +133,20 @@ traverse =
         ]
 
 
-
-{-
-
-   folds =
-       let
-           example =
-               [ "foo", "bar", "baz" ]
-       in
-           [ test "foldlM behaves the same as foldl" <|
-               \_ ->
-                   State.foldlM (flip (\x y -> State.state (x ++ y))) "" example
-                       |> State.finalValue ()
-                       |> Expect.equal (List.foldl (++) "" example)
-           , test "foldrM behaves the same as foldr" <|
-               \_ ->
-                   State.foldrM (\x y -> State.state (x ++ y)) "" example
-                       |> State.finalValue ()
-                       |> Expect.equal (List.foldl (++) "" example)
-           ]
--}
+folds =
+    let
+        example =
+            [ "foo", "bar", "baz" ]
+    in
+        describe "folds"
+            [ test "foldlM behaves the same as foldl" <|
+                \_ ->
+                    State.foldlM (flip (\x y -> State.state (x ++ y))) "" example
+                        |> State.finalValue ()
+                        |> Expect.equal (List.foldl (++) "" example)
+            , test "foldrM behaves the same as foldr" <|
+                \_ ->
+                    State.foldrM (\x y -> State.state (x ++ y)) "" example
+                        |> State.finalValue ()
+                        |> Expect.equal (List.foldr (++) "" example)
+            ]
