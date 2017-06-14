@@ -27,7 +27,7 @@ all =
                                 |> State.join
                     in
                         evaluate a b
-            , test "Join = AndThen identity" <|
+            , test "map f x = x |> andThen (state << f) " <|
                 \() ->
                     let
                         a =
@@ -104,28 +104,53 @@ all =
                     in
                         evaluate (andThen g (andThen f m)) (andThen (\x -> f x |> andThen g) m)
             ]
-        , describe "traverse"
-            [ test "expect traverse leaves the list the same" <|
-                \() ->
-                    let
-                        list =
-                            [ 1, 2, 3 ]
-                    in
-                        list
-                            |> State.traverse State.state
-                            |> State.finalValue ()
-                            |> Expect.equal list
-            , test "foldrM doesn't blow the stack" <|
-                \() ->
-                    List.range 0 100000
-                        |> State.foldrM (\a b -> state (a + b)) 0
-                        |> State.finalValue ()
-                        |> Expect.equal (List.foldr (+) 0 <| List.range 0 100000)
-            , test "filterM doesn't blow the stack" <|
-                \() ->
-                    List.range 0 100000
-                        |> State.filterM (\x -> state (x > -1))
-                        |> State.finalValue ()
-                        |> Expect.equal (List.filter (\v -> v > -1) <| List.range 0 100000)
-            ]
         ]
+
+
+traverse =
+    describe "traverse"
+        [ test "expect traverse leaves the list the same" <|
+            \() ->
+                let
+                    list =
+                        [ 1, 2, 3 ]
+                in
+                    list
+                        |> State.traverse State.state
+                        |> State.finalValue ()
+                        |> Expect.equal list
+        , test "foldrM doesn't blow the stack" <|
+            \() ->
+                List.range 0 100000
+                    |> State.foldrM (\a b -> state (a + b)) 0
+                    |> State.finalValue ()
+                    |> Expect.equal (List.foldr (+) 0 <| List.range 0 100000)
+        , test "filterM doesn't blow the stack" <|
+            \() ->
+                List.range 0 100000
+                    |> State.filterM (\x -> state (x > -1))
+                    |> State.finalValue ()
+                    |> Expect.equal (List.filter (\v -> v > -1) <| List.range 0 100000)
+        ]
+
+
+
+{-
+
+   folds =
+       let
+           example =
+               [ "foo", "bar", "baz" ]
+       in
+           [ test "foldlM behaves the same as foldl" <|
+               \_ ->
+                   State.foldlM (flip (\x y -> State.state (x ++ y))) "" example
+                       |> State.finalValue ()
+                       |> Expect.equal (List.foldl (++) "" example)
+           , test "foldrM behaves the same as foldr" <|
+               \_ ->
+                   State.foldrM (\x y -> State.state (x ++ y)) "" example
+                       |> State.finalValue ()
+                       |> Expect.equal (List.foldl (++) "" example)
+           ]
+-}
