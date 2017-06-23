@@ -106,18 +106,34 @@ x =
         ]
 
 
+f x =
+    State.advance (\state -> ( state, state + x ))
+
+
 traverse =
     describe "traverse"
         [ test "expect traverse leaves the list the same" <|
             \() ->
                 let
                     list =
-                        [ 1, 2, 3 ]
+                        List.range 0 10
                 in
                     list
-                        |> State.traverse State.state
-                        |> State.finalValue ()
-                        |> Expect.equal list
+                        |> State.traverse f
+                        |> State.finalValue 0
+                        |> Expect.equal [ 0, 0, 1, 3, 6, 10, 15, 21, 28, 36, 45 ]
+        , test "filterM works" <|
+            \() ->
+                [ "a", "b", "c", "d", "a", "c", "b", "d" ]
+                    |> State.filterM (\x -> State.advance (\s -> ( List.member x s, x :: s )))
+                    |> State.finalValue []
+                    |> Expect.equal [ "a", "c", "b", "d" ]
+        , test "filterM documentation example" <|
+            \_ ->
+                [ 1, 2, 3, 4, 4, 5, 5, 1 ]
+                    |> State.filterM (\element -> State.advance (\cache -> ( List.member element cache, element :: cache )))
+                    |> State.run []
+                    |> Expect.equal ( [ 4, 5, 1 ], [ 1, 2, 3, 4, 5 ] )
         , test "foldrM doesn't blow the stack" <|
             \() ->
                 List.range 0 100000
@@ -146,7 +162,7 @@ folds =
                         |> Expect.equal (List.foldl (++) "" example)
             , test "foldrM behaves the same as foldr" <|
                 \_ ->
-                    State.foldrM (\x y -> State.state (x ++ y)) "" example
-                        |> State.finalValue ()
+                    State.foldrM (\x y -> State.advance (\s -> ( x ++ s, x ++ y ))) "" example
+                        |> State.finalState ""
                         |> Expect.equal (List.foldr (++) "" example)
             ]
