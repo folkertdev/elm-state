@@ -21,7 +21,9 @@ module State
         , run
         , finalState
         , finalValue
-        , makeTailRecursive
+        , tailRecM
+        , tailRec
+        , Step(..)
         )
 
 {-| This library provides ways to compose functions of the type
@@ -68,10 +70,16 @@ level documentation, please see the [readme](https://github.com/folkertdev/elm-s
 @docs traverse, combine, filterM, foldlM, foldrM
 
 #Safe recursion
+
 The archetypal Haskell implementation for State will overflow the stack in strict languages like Elm.
-The generalized list functions above use the function below to ensure tail-recursion. Because Elm
-has tail-call elimination, the evaluation of State is written as a loop and runs in constant space.
-@docs makeTailRecursive
+We use the fact that elm performs tail-call eliminiation to make sure the generalized list functions don't overflow the stack.
+
+To allow for full flexibility, the stack-safety primitives are exposed. Look at the source for examples.
+
+The implementation of these functions is heavily based on the
+[purescript MonadRec implementation](https://github.com/purescript/purescript-tailrec/blob/master/src/Control/Monad/Rec/Class.purs)
+
+@docs tailRec, tailRecM, Step
 
 #Notes for the Haskellers/curious
 
@@ -121,7 +129,7 @@ This function can be extended as follows:
     embed2 f arg1 =
         embed (f arg1)
 -}
-embed : (a -> b) -> State a b
+embed : (s -> a) -> State s a
 embed f =
     State (\s -> ( f s, s ))
 
@@ -382,11 +390,11 @@ taking care of threading the state through.
 This function is also called `mapM`.
 -}
 traverse : (a -> State s b) -> List a -> State s (List b)
-traverse f list =
-    foldrM (\elem accum -> map2 (::) (f elem) (state accum)) [] list
+traverse f =
+    map List.reverse << foldlM (\accum elem -> map2 (::) (f elem) (state accum)) []
 
 
-{-| Combine a list of State's into one by composition.
+{-| Combine a list of `State`s into one by composition.
 The resulting value is a list of the results of subcomputations.
 -}
 combine : List (State s a) -> State s (List a)
@@ -396,24 +404,15 @@ combine =
 
 {-| Generalize `List.filter` to work on `State`. Composes only the states that satisfy the predicate.
 
-    like : String -> String
-    like subject =
-        "I like " ++ subject ++ "s"
-
-    rodents =
-        [ "hamster", "rabbit", "guinea pig" ]
-
-    result =
-        filterM (State.embed << List.member) rodents
-            |> State.map (List.map like)
-            |> State.map (String.join " and ")
-            |> State.run [ "cat", "dog", "hamster" ]
-            -- ==  ("I like hamsters", ["cat", "dog", "hamster"])
-
+    -- keep only items that occur at least once
+    [ 1, 2, 3, 4, 4, 5, 5, 1 ]
+        |> State.filter (\element -> State.advance (\cache -> (List.member element cache, element :: cache)))
+        |> State.run []
+        --> ([4,5,1], [1,5,5,4,4,3,2,1])
 
 -}
 filterM : (a -> State s Bool) -> List a -> State s (List a)
-filterM predicate list =
+filterM predicate =
     let
         folder elem accum =
             let
@@ -426,31 +425,31 @@ filterM predicate list =
                 predicate elem
                     |> map keepIfTrue
     in
-        foldrM folder [] list
+        map List.reverse << foldlM (flip folder) []
 
 
 {-| Compose a list of updated states into one from the left. Also called `foldM`.
 -}
 foldlM : (b -> a -> State s b) -> b -> List a -> State s b
-foldlM f initialValue list =
+foldlM f =
     let
-        go ( values, s ) =
-            case values of
+        step accum elements =
+            case elements of
                 [] ->
-                    state (Ok s)
+                    state (Done accum)
 
                 x :: xs ->
-                    map (\accum -> Err ( xs, f accum x )) s
+                    f accum x
+                        |> map (\a_ -> Loop ( a_, xs ))
     in
-        makeTailRecursive go ( list, state initialValue )
-            |> join
+        tailRecM2 step
 
 
 {-| Compose a list of updated states into one from the right
 -}
 foldrM : (a -> b -> State s b) -> b -> List a -> State s b
-foldrM f initialValue =
-    foldlM (flip f) initialValue << List.reverse
+foldrM f initialValue xs =
+    foldlM (flip f) initialValue (List.reverse xs)
 
 
 {-| Perform an action n times, gathering the results
@@ -460,11 +459,11 @@ replicateM n s =
     let
         go ( n, xs ) =
             if n < 1 then
-                state (Ok xs)
+                state (Done xs)
             else
-                map (\x -> Err ( n - 1, x :: xs )) s
+                map (\x -> Loop ( n - 1, x :: xs )) s
     in
-        makeTailRecursive go ( n, [] )
+        tailRecM go ( n, [] )
 
 
 zipWithM : (a -> b -> State s c) -> List a -> List b -> State s (List c)
@@ -477,24 +476,86 @@ mapAndUnzipM f xs =
     map List.unzip (traverse f xs)
 
 
-{-| Make a State-function tail-recursive
 
-The core idea is to peel layers of the computation, instead
-of doing the whole thing at once. When the peeling is done right,
-the compiler will optimize using tail-call elimination
+-- Tail Recursion - based on purescript https://github.com/purescript/purescript-tailrec/blob/master/src/Control/Monad/Rec/Class.purs
 
-Look at this package's source for usage examples
+
+{-| The result of a compuation: either `Loop` containing the updated accumulator,
+or `Done` containing the final result of the computation.
 -}
-makeTailRecursive : (a -> State s (Result a b)) -> a -> State s b
-makeTailRecursive f x =
-    let
-        -- this has some parallels with unfolds
-        go ( elem, accum ) =
-            case run accum (f elem) of
-                ( Err elem, accum ) ->
-                    go ( elem, accum )
+type Step a b
+    = Loop a
+    | Done b
 
-                ( Ok elem, accum ) ->
-                    ( elem, accum )
+
+{-| Create a pure tail-recursive function of one argument
+
+    pow : number -> Int -> number
+    pow n p =
+        let go { accum, power } =
+                if power == 0 then
+                    Done accum
+
+                else
+                    Loop { accum = accum * n
+                         , power = power - 1
+                         }
+        in
+            tailRec go { accum = 1, power = p }
+-}
+tailRec : (a -> Step a b) -> a -> b
+tailRec f =
+    let
+        go step =
+            case step of
+                Loop a ->
+                    go (f a)
+
+                Done b ->
+                    b
     in
-        State (\s -> go ( x, s ))
+        go << f
+
+
+tailRecM2 : (a -> c -> State s (Step ( a, c ) b)) -> a -> c -> State s b
+tailRecM2 f a b =
+    tailRecM (uncurry f) ( a, b )
+
+
+{-| The `tailRecM` function takes a step function and applies it recursively until
+a pure value of type `b` is found. Because of tail recursion, this function runs in constant stack-space.
+
+    {-| Perform an action n times, gathering the results
+    -}
+    replicateM : Int -> State s a -> State s (List a)
+    replicateM n s =
+        let
+            go ( n, xs ) =
+                if n < 1 then
+                    state (Done xs)
+                else
+                    map (\x -> Loop ( n - 1, x :: xs )) s
+        in
+            tailRecM go ( n, [] )
+
+
+-}
+tailRecM : (a -> State s (Step a b)) -> a -> State s b
+tailRecM f a =
+    let
+        helper : ( Step a b, c ) -> Step ( a, c ) ( b, c )
+        helper ( m, s1 ) =
+            case m of
+                Loop x ->
+                    Loop ( x, s1 )
+
+                Done y ->
+                    Done ( y, s1 )
+
+        step : ( a, s ) -> Step ( a, s ) ( b, s )
+        step ( value, s ) =
+            case f value of
+                State st ->
+                    helper (st s)
+    in
+        State <| \s -> tailRec step ( a, s )
