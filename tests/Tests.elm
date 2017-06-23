@@ -133,7 +133,7 @@ traverse =
                 [ 1, 2, 3, 4, 4, 5, 5, 1 ]
                     |> State.filterM (\element -> State.advance (\cache -> ( List.member element cache, element :: cache )))
                     |> State.run []
-                    |> Expect.equal ( [ 4, 5, 1 ], [ 1, 2, 3, 4, 5 ] )
+                    |> Expect.equal ( [ 4, 5, 1 ], [ 1, 5, 5, 4, 4, 3, 2, 1 ] )
         , test "foldrM doesn't blow the stack" <|
             \() ->
                 List.range 0 100000

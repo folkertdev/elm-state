@@ -1,5 +1,5 @@
 {
-    "version": "2.1.0",
+    "version": "3.0.0",
     "summary": "Threading state through computation",
     "repository": "https://github.com/folkertdev/elm-state.git",
     "license": "BSD3",
