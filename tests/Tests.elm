@@ -1,17 +1,21 @@
-module Tests exposing (..)
+module Tests exposing (evaluate, folds, traverse)
 
-import Test exposing (..)
 import Expect
-import Fuzz exposing (list, int, tuple, string)
-import String
+import Fuzz exposing (int, list, string, tuple)
 import State exposing (State, andThen, state)
+import String
+import Test exposing (..)
+
+
+flip f a b =
+    f b a
 
 
 evaluate a b =
     Expect.equal (State.run () a) (State.run () b)
 
 
-x =
+stateTests =
     describe "Sample Test Suite"
         [ describe "Unit test examples"
             [ test "Join = AndThen identity" <|
@@ -25,7 +29,7 @@ x =
                             state (state 2)
                                 |> State.join
                     in
-                        evaluate a b
+                    evaluate a b
             , test "map f x = x |> andThen (state << f) " <|
                 \() ->
                     let
@@ -36,7 +40,7 @@ x =
                             state 2
                                 |> andThen (\x -> state (x + 2))
                     in
-                        evaluate a b
+                    evaluate a b
             , test "filterM documentation example" <|
                 \() ->
                     let
@@ -53,7 +57,7 @@ x =
                                 |> State.map (String.join " and ")
                                 |> State.run [ "cat", "dog", "hamster" ]
                     in
-                        Expect.equal ( "I like hamsters", [ "cat", "dog", "hamster" ] ) result
+                    Expect.equal ( "I like hamsters", [ "cat", "dog", "hamster" ] ) result
             , test "get documentation example" <|
                 \() ->
                     State.map2 (+) State.get State.get
@@ -82,13 +86,13 @@ x =
                     f x =
                         state (x + x)
                 in
-                    \value -> evaluate (state value |> andThen f) (f value)
+                \value -> evaluate (state value |> andThen f) (f value)
             , fuzz int "Right identity" <|
                 let
                     f x =
                         state (x + x)
                 in
-                    \value -> evaluate (state value |> andThen state) (state value)
+                \value -> evaluate (state value |> andThen state) (state value)
             , fuzz int "Associativity" <|
                 \value ->
                     let
@@ -101,16 +105,16 @@ x =
                         m =
                             state 2
                     in
-                        evaluate (andThen g (andThen f m)) (andThen (\x -> f x |> andThen g) m)
+                    evaluate (andThen g (andThen f m)) (andThen (\x -> f x |> andThen g) m)
             ]
         ]
 
 
-f x =
-    State.advance (\state -> ( state, state + x ))
-
-
 traverse =
+    let
+        advancer x =
+            State.advance (\state -> ( state, state + x ))
+    in
     describe "traverse"
         [ test "expect traverse leaves the list the same" <|
             \() ->
@@ -118,10 +122,10 @@ traverse =
                     list =
                         List.range 0 10
                 in
-                    list
-                        |> State.traverse f
-                        |> State.finalValue 0
-                        |> Expect.equal [ 0, 0, 1, 3, 6, 10, 15, 21, 28, 36, 45 ]
+                list
+                    |> State.traverse advancer
+                    |> State.finalValue 0
+                    |> Expect.equal [ 0, 0, 1, 3, 6, 10, 15, 21, 28, 36, 45 ]
         , test "filterM works" <|
             \() ->
                 [ "a", "b", "c", "d", "a", "c", "b", "d" ]
@@ -154,15 +158,15 @@ folds =
         example =
             [ "foo", "bar", "baz" ]
     in
-        describe "folds"
-            [ test "foldlM behaves the same as foldl" <|
-                \_ ->
-                    State.foldlM (flip (\x y -> State.state (x ++ y))) "" example
-                        |> State.finalValue ()
-                        |> Expect.equal (List.foldl (++) "" example)
-            , test "foldrM behaves the same as foldr" <|
-                \_ ->
-                    State.foldrM (\x y -> State.advance (\s -> ( x ++ s, x ++ y ))) "" example
-                        |> State.finalState ""
-                        |> Expect.equal (List.foldr (++) "" example)
-            ]
+    describe "folds"
+        [ test "foldlM behaves the same as foldl" <|
+            \_ ->
+                State.foldlM (flip (\x y -> State.state (x ++ y))) "" example
+                    |> State.finalValue ()
+                    |> Expect.equal (List.foldl (++) "" example)
+        , test "foldrM behaves the same as foldr" <|
+            \_ ->
+                State.foldrM (\x y -> State.advance (\s -> ( x ++ s, x ++ y ))) "" example
+                    |> State.finalState ""
+                    |> Expect.equal (List.foldr (++) "" example)
+        ]
