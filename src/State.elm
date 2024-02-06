@@ -6,6 +6,7 @@ module State exposing
     , run, finalValue, finalState
     , traverse, combine, filterM, foldlM, foldrM
     , tailRec, tailRecM, Step(..)
+    , replace
     )
 
 {-| This library provides ways to compose functions of the type
@@ -190,6 +191,26 @@ map3 f step1 step2 step3 =
     map f step1
         |> andMap step2
         |> andMap step3
+
+
+{-| Replace the value the state holds
+
+This is equivalent to
+
+    replace : a -> State s b -> State s a
+    replace value =
+        map (\_ -> value)
+
+-}
+replace : a -> State s b -> State s a
+replace value (State step) =
+    State <|
+        \currentState ->
+            let
+                ( _, newState ) =
+                    step currentState
+            in
+            ( value, newState )
 
 
 
